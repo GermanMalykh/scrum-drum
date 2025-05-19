@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Поле Чудес</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { margin: 20px; }
+
+    #volume-control {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #volume-control label {
+      font-size: 14px;
+      width: 120px;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-container input[type="range"] {
+      width: 100px;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      margin-top: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 220px;
+    }
+
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 10px;
+    }
+
+    .cell-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    span[contenteditable="true"]:focus {
+      outline: none;
+    }
+
+    #wheel-container.dragover {
+      border: 2px dashed #007bff;
+      border-radius: 50%;
+      transition: border 0.2s;
+    }
+
+    .buttons-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    button.clear-btn {
+      background-color: #dc3545;
+    }
+
+    button.clear-btn:hover {
+      background-color: #b02a37;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #dc3545;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 5px;
+    }
+
+    .delete-btn:hover {
+      color: #b02a37;
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #wheel-container {
+      position: relative;
+      margin-top: 40px;
+    }
+
+    canvas#wheel {
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+
+    #controls {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    #winner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #winner-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #winner-name {
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 30px 60px;
+      border-radius: 16px;
+      font-size: 48px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div id="volume-control">
+  <div class="slider-container">
+    <label for="volume">Громкость: 🔊</label>
+    <input type="range" id="volume" min="0" max="1" step="0.01" value="0">
+  </div>
+  <div class="slider-container">
+    <label for="speed">Скорость вращения:</label>
+    <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+  </div>
+</div>
+
+<h1>Барабан «Поле чудес»</h1>
+
+<div class="container">
+  <div>
+    <div class="tooltip">
+      <h3>Участники</h3>
+      <span class="tooltiptext">Перетащите текстовый файл со списком имен на барабан, чтобы загрузить участников</span>
+    </div>
+    <table id="names-table">
+      <tbody>
+        <tr>
+          <td>
+            <div class="cell-container">
+              <span contenteditable="true">Иванов Иван</span>
+              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="cell-container">
+              <span contenteditable="true">Петров Пётр</span>
+              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="cell-container">
+              <span contenteditable="true">Сидоров Сидор</span>
+              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="buttons-container">
+      <button onclick="addRow()">Добавить</button>
+      <button class="clear-btn" onclick="clearTable()">Очистить</button>
+    </div>
+  </div>
+
+  <div id="wheel-container">
+    <canvas id="wheel" width="500" height="500" onclick="stopConfetti()"></canvas>
+  </div>
+
+  <div>
+    <h3>Выпали</h3>
+    <table id="results-table">
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="winner-overlay" onclick="stopConfetti()">
+  <div id="winner-name"></div>
+</div>
+
+<audio id="music" src="pole-chudes.mp3" preload="auto"></audio>
+<audio id="zero" src="zero.mp3" preload="auto"></audio>
+<audio id="winner-sound" src="winner.mp3" preload="auto"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const resultsTable = document.querySelector("#results-table tbody");
+const music = document.getElementById("music");
+const zeroSound = document.getElementById("zero");
+const winnerSound = document.getElementById("winner-sound");
+const winnerName = document.getElementById("winner-name");
+const overlay = document.getElementById("winner-overlay");
+const volumeSlider = document.getElementById("volume");
+const speedSlider = document.getElementById("speed");
+const wheelContainer = document.getElementById("wheel-container");
+
+let angle = 0;
+let speed = 0;
+let isSpinning = false;
+let selectedWinner = null;
+let confettiRunning = false;
+let confettiInterval = null;
+let redrawPending = false;
+let spinSpeedFactor = 1;
+
+// Инициализация громкости при загрузке
+function initVolume() {
+  const volume = parseFloat(volumeSlider.value);
+  [music, zeroSound, winnerSound].forEach(s => s.volume = volume);
+}
+
+// Вызываем инициализацию громкости сразу после загрузки
+initVolume();
+
+function getNames() {
+  const cells = document.querySelectorAll("#names-table .cell-container span");
+  let names = Array.from(cells).map(c => c.textContent.trim()).filter(Boolean);
+  if (names.length === 0) {
+    return Array(16).fill("");
+  }
+  if (names.length % 2 !== 0) names.push("0");
+  return names;
+}
+
+function drawPointer() {
+  const radius = canvas.width / 2;
+  const x = canvas.width - 10;
+  const y = radius;
+
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 30, y - 30);
+  ctx.lineTo(x + 30, y + 30);
+  ctx.closePath();
+  ctx.fillStyle = "red";
+  ctx.fill();
+}
+
+function drawWheel(names) {
+  const radius = canvas.width / 2;
+  const centerX = radius;
+  const centerY = radius;
+  const anglePerSlice = 2 * Math.PI / names.length;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < names.length; i++) {
+    const startAngle = angle + i * anglePerSlice;
+    const endAngle = startAngle + anglePerSlice;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = i % 2 === 0 ? "#000" : "#fff";
+    ctx.fill();
+
+    if (names[i]) {
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(startAngle + anglePerSlice / 2);
+      ctx.textAlign = "right";
+      ctx.fillStyle = i % 2 === 0 ? "#fff" : "#000";
+      ctx.font = "16px sans-serif";
+      ctx.fillText(names[i], radius - 12, 6);
+      ctx.restore();
+    }
+  }
+
+  drawPointer();
+}
+
+function spinWheel() {
+  if (isSpinning || overlay.classList.contains("show")) return;
+  selectedWinner = null;
+  drawWheel(getNames());
+
+  const names = getNames();
+  isSpinning = true;
+  speed = (Math.random() * 0.1 + 0.15) * spinSpeedFactor;
+  music.currentTime = 0;
+  music.play();
+  requestAnimationFrame(() => animate(names));
+}
+
+function animate(names) {
+  if (!isSpinning) return;
+
+  angle += speed;
+  angle %= 2 * Math.PI;
+  drawWheel(names);
+
+  const baseFriction = 0.985;
+  const friction = baseFriction + (1 - baseFriction) * (spinSpeedFactor - 0.5) / 1.5;
+  speed *= friction;
+  if (speed < 0.002) {
+    isSpinning = false;
+    music.pause();
+
+    const anglePerSlice = 2 * Math.PI / names.length;
+    const normalizedAngle = (2 * Math.PI - angle) % (2 * Math.PI);
+    const index = Math.floor(normalizedAngle / anglePerSlice);
+    const selected = names[index];
+
+    if (selected === "0") {
+      zeroSound.currentTime = 0;
+      zeroSound.play();
+      selectedWinner = "0";
+      return;
+    }
+
+    if (selected) {
+      selectedWinner = selected;
+      winnerName.textContent = selected;
+      overlay.classList.add("show");
+      launchConfetti();
+      winnerSound.currentTime = 0;
+      winnerSound.play();
+
+      const tableCells = document.querySelectorAll("#names-table .cell-container span");
+      for (let cell of tableCells) {
+        if (cell.textContent.trim() === selected) {
+          cell.parentElement.parentElement.parentElement.remove();
+          break;
+        }
+      }
+
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.textContent = selected;
+      row.appendChild(cell);
+      resultsTable.appendChild(row);
+
+      redrawPending = true;
+    }
+  } else {
+    requestAnimationFrame(() => animate(names));
+  }
+}
+
+function launchConfetti() {
+  if (confettiRunning) return;
+  confettiRunning = true;
+  confettiInterval = setInterval(() => {
+    confetti({ particleCount: 20, spread: 80, origin: { y: 0.5 } });
+  }, 300);
+}
+
+function stopConfetti() {
+  if (!confettiRunning) return;
+  clearInterval(confettiInterval);
+  confettiRunning = false;
+  overlay.classList.remove("show");
+  selectedWinner = null;
+
+  if (redrawPending) {
+    drawWheel(getNames());
+    redrawPending = false;
+  }
+}
+
+function addRow() {
+  const row = document.createElement("tr");
+  const cell = document.createElement("td");
+  const container = document.createElement("div");
+  container.className = "cell-container";
+  const span = document.createElement("span");
+  span.contentEditable = "true";
+  span.textContent = "Новое имя";
+  span.addEventListener("blur", () => drawWheel(getNames()));
+  span.addEventListener("input", () => {
+    if (span.textContent.length > 25) {
+      span.textContent = span.textContent.slice(0, 25);
+      span.focus();
+      placeCaretAtEnd(span);
+    }
+  });
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.textContent = "✕";
+  deleteBtn.onclick = () => {
+    row.remove();
+    drawWheel(getNames());
+  };
+  container.appendChild(span);
+  container.appendChild(deleteBtn);
+  cell.appendChild(container);
+  row.appendChild(cell);
+  document.querySelector("#names-table tbody").appendChild(row);
+  span.focus();
+}
+
+function clearTable() {
+  document.querySelector("#names-table tbody").innerHTML = "";
+  drawWheel(getNames());
+}
+
+function handleFileDrop(file) {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const names = event.target.result
+      .split('\n')
+      .map(name => name.trim())
+      .filter(name => name)
+      .map(name => name.slice(0, 25));
+
+    const tbody = document.querySelector("#names-table tbody");
+    tbody.innerHTML = '';
+
+    names.forEach(name => {
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      const container = document.createElement("div");
+      container.className = "cell-container";
+      const span = document.createElement("span");
+      span.contentEditable = "true";
+      span.textContent = name;
+      span.addEventListener("blur", () => drawWheel(getNames()));
+      span.addEventListener("input", () => {
+        if (span.textContent.length > 25) {
+          span.textContent = span.textContent.slice(0, 25);
+          span.focus();
+          placeCaretAtEnd(span);
+        }
+      });
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "✕";
+      deleteBtn.onclick = () => {
+        row.remove();
+        drawWheel(getNames());
+      };
+      container.appendChild(span);
+      container.appendChild(deleteBtn);
+      cell.appendChild(container);
+      row.appendChild(cell);
+      tbody.appendChild(row);
+    });
+
+    drawWheel(getNames());
+  };
+  reader.readAsText(file);
+}
+
+function placeCaretAtEnd(el) {
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+wheelContainer.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  wheelContainer.classList.add('dragover');
+});
+
+wheelContainer.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  wheelContainer.classList.add('dragover');
+});
+
+wheelContainer.addEventListener('dragleave', () => {
+  wheelContainer.classList.remove('dragover');
+});
+
+wheelContainer.addEventListener('drop', (e) => {
+  e.preventDefault();
+  wheelContainer.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('text')) {
+    handleFileDrop(file);
+  } else {
+    alert('Пожалуйста, перетащите текстовый файл.');
+  }
+});
+
+volumeSlider.addEventListener("input", () => {
+  const volume = parseFloat(volumeSlider.value);
+  [music, zeroSound, winnerSound].forEach(s => s.volume = volume);
+});
+
+speedSlider.addEventListener("input", () => {
+  spinSpeedFactor = parseFloat(speedSlider.value);
+});
+
+document.querySelectorAll("#names-table .cell-container span").forEach(span => {
+  span.addEventListener("blur", () => drawWheel(getNames()));
+  span.addEventListener("input", () => {
+    if (span.textContent.length > 25) {
+      span.textContent = span.textContent.slice(0, 25);
+      span.focus();
+      placeCaretAtEnd(span);
+    }
+  });
+});
+
+canvas.addEventListener("click", spinWheel);
+
+drawWheel(getNames());
+</script>
+
+</body>
+</html>

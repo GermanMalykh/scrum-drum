@@ -40,6 +40,45 @@
       width: 100px;
     }
 
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-icon {
+      cursor: pointer;
+      position: relative;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+
+    .info-icon .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      top: 100%;
+      right: 0;
+      left: auto;
+      transform: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 14px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .info-icon:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
     .container {
       display: flex;
       gap: 40px;
@@ -67,8 +106,26 @@
       justify-content: space-between;
     }
 
+    span[contenteditable="true"] {
+      display: inline-block;
+      min-width: 210px;
+      max-width: 210px;
+    }
+
+    span[contenteditable="true"]:empty:before {
+      content: attr(data-placeholder);
+      color: grey;
+    }
+
     span[contenteditable="true"]:focus {
       outline: none;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 12px;
+      display: none;
+      margin-top: 5px;
     }
 
     #wheel-container.dragover {
@@ -118,6 +175,23 @@
 
     .delete-btn:hover {
       color: #b02a37;
+    }
+
+    .download-btn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 8px 14px;
+      margin-left: 5px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.2s;
+    }
+
+    .download-btn:hover {
+      background-color: #0056b3;
     }
 
     .tooltip {
@@ -198,6 +272,21 @@
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
+
+    .single-name {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 16px;
+      font-size: 32px;
+      font-weight: bold;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
@@ -211,6 +300,13 @@
     <label for="speed">Скорость вращения:</label>
     <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
   </div>
+  <div class="checkbox-container">
+    <label for="pause-checkbox"><s>Рекламная</s> Чайная пауза ☕️:</label>
+    <input type="checkbox" id="pause-checkbox">
+    <span class="info-icon">ℹ️
+      <span class="tooltiptext">На барабан можно закинуть список имен в текстовом файле (.txt), с одним именем на строку.</span>
+    </span>
+  </div>
 </div>
 
 <h1>Крутите барабан</h1>
@@ -223,40 +319,45 @@
     </div>
     <table id="names-table">
       <tbody>
-        <tr>
-          <td>
-            <div class="cell-container">
-              <span contenteditable="true">Иванов Иван</span>
-              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div class="cell-container">
-              <span contenteditable="true">Петров Пётр</span>
-              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div class="cell-container">
-              <span contenteditable="true">Сидоров Сидор</span>
-              <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
-            </div>
-          </td>
-        </tr>
+      <tr>
+        <td>
+          <div class="cell-container">
+            <span contenteditable="true">Иванов Иван</span>
+            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+          </div>
+          <div class="error-message">Введите имя</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="cell-container">
+            <span contenteditable="true">Петров Пётр</span>
+            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+          </div>
+          <div class="error-message">Введите имя</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="cell-container">
+            <span contenteditable="true">Сидоров Сидор</span>
+            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+          </div>
+          <div class="error-message">Введите имя</div>
+        </td>
+      </tr>
       </tbody>
     </table>
     <div class="buttons-container">
       <button onclick="addRow()">Добавить</button>
       <button class="clear-btn" onclick="clearTable()">Очистить</button>
+      <button class="download-btn" onclick="downloadNames()" title="Скачать список участников">📥</button>
     </div>
   </div>
 
   <div id="wheel-container">
-    <canvas id="wheel" width="500" height="500" onclick="stopConfetti()"></canvas>
+    <canvas id="wheel" width="500" height="500" onclick="spinWheel()"></canvas>
+    <div id="single-name" class="single-name" style="display: none;"></div>
   </div>
 
   <div>
@@ -274,6 +375,7 @@
 <audio id="music" src="pole-chudes.mp3" preload="auto"></audio>
 <audio id="zero" src="zero.mp3" preload="auto"></audio>
 <audio id="winner-sound" src="winner.mp3" preload="auto"></audio>
+<audio id="pause" src="pause.mp3" loop></audio>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -284,11 +386,14 @@ const resultsTable = document.querySelector("#results-table tbody");
 const music = document.getElementById("music");
 const zeroSound = document.getElementById("zero");
 const winnerSound = document.getElementById("winner-sound");
+const pauseSound = document.getElementById("pause");
 const winnerName = document.getElementById("winner-name");
 const overlay = document.getElementById("winner-overlay");
 const volumeSlider = document.getElementById("volume");
 const speedSlider = document.getElementById("speed");
+const pauseCheckbox = document.getElementById("pause-checkbox");
 const wheelContainer = document.getElementById("wheel-container");
+const singleNameElement = document.getElementById("single-name");
 
 let angle = 0;
 let speed = 0;
@@ -299,10 +404,12 @@ let confettiInterval = null;
 let redrawPending = false;
 let spinSpeedFactor = 1;
 
+// Убрана функция capitalizeName, теперь текст сохраняет исходный регистр
+
 // Инициализация громкости при загрузке
 function initVolume() {
   const volume = parseFloat(volumeSlider.value);
-  [music, zeroSound, winnerSound].forEach(s => s.volume = volume);
+  [music, zeroSound, winnerSound, pauseSound].forEach(s => s.volume = volume);
 }
 
 // Вызываем инициализацию громкости сразу после загрузки
@@ -336,9 +443,40 @@ function drawWheel(names) {
   const radius = canvas.width / 2;
   const centerX = radius;
   const centerY = radius;
-  const anglePerSlice = 2 * Math.PI / names.length;
+
+  const realNamesCount = names.filter(n => n !== "0").length;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (realNamesCount === 1) {
+    // Рисуем чередующиеся сектора как фон
+    const numSlices = 16; // Фиксированное число секторов для ч-б фона
+    const anglePerSlice = 2 * Math.PI / numSlices;
+
+    for (let i = 0; i < numSlices; i++) {
+      const startAngle = angle + i * anglePerSlice;
+      const endAngle = startAngle + anglePerSlice;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = i % 2 === 0 ? "#000" : "#fff";
+      ctx.fill();
+    }
+
+    // Показываем имя на темном фоне в центре
+    const singleName = names.find(n => n !== "0");
+    singleNameElement.textContent = singleName;
+    singleNameElement.style.display = "block";
+    drawPointer();
+    return;
+  } else {
+    singleNameElement.style.display = "none";
+  }
+
+  // Стандартная отрисовка для нескольких участников
+  const anglePerSlice = 2 * Math.PI / names.length;
 
   for (let i = 0; i < names.length; i++) {
     const startAngle = angle + i * anglePerSlice;
@@ -456,19 +594,48 @@ function stopConfetti() {
 }
 
 function addRow() {
+  const tbody = document.querySelector("#names-table tbody");
+
   const row = document.createElement("tr");
   const cell = document.createElement("td");
   const container = document.createElement("div");
   container.className = "cell-container";
   const span = document.createElement("span");
   span.contentEditable = "true";
-  span.textContent = "Новое имя";
-  span.addEventListener("blur", () => drawWheel(getNames()));
+  span.setAttribute("data-placeholder", "Новое имя");
+  span.addEventListener("blur", () => {
+    const trimmed = span.textContent.trim();
+    const error = row.querySelector(".error-message");
+    if (trimmed === '') {
+      row.remove();
+    } else {
+      error.style.display = "none";
+    }
+    drawWheel(getNames());
+  });
   span.addEventListener("input", () => {
+    const error = row.querySelector(".error-message");
     if (span.textContent.length > 25) {
       span.textContent = span.textContent.slice(0, 25);
       span.focus();
       placeCaretAtEnd(span);
+    }
+    if (span.textContent.trim() !== '') {
+      error.style.display = "none";
+    }
+  });
+  span.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const trimmed = span.textContent.trim();
+      const error = row.querySelector(".error-message");
+      if (trimmed !== '') {
+        span.blur();
+        drawWheel(getNames());
+        addRow();
+      } else {
+        error.style.display = "block";
+      }
     }
   });
   const deleteBtn = document.createElement("button");
@@ -481,14 +648,34 @@ function addRow() {
   container.appendChild(span);
   container.appendChild(deleteBtn);
   cell.appendChild(container);
+  const error = document.createElement("div");
+  error.className = "error-message";
+  error.textContent = "Введите имя";
+  cell.appendChild(error);
   row.appendChild(cell);
-  document.querySelector("#names-table tbody").appendChild(row);
+  tbody.appendChild(row);
   span.focus();
 }
 
 function clearTable() {
   document.querySelector("#names-table tbody").innerHTML = "";
   drawWheel(getNames());
+}
+
+function downloadNames() {
+  const participants = getNames().filter(name => name !== "0");
+  const winners = Array.from(resultsTable.querySelectorAll("td")).map(td => td.textContent.trim());
+  const allNames = [...participants, ...winners];
+  const text = allNames.join("\n");
+  const blob = new Blob([text], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "participants.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function handleFileDrop(file) {
@@ -511,12 +698,39 @@ function handleFileDrop(file) {
       const span = document.createElement("span");
       span.contentEditable = "true";
       span.textContent = name;
-      span.addEventListener("blur", () => drawWheel(getNames()));
+      span.addEventListener("blur", () => {
+        const trimmed = span.textContent.trim();
+        const error = row.querySelector(".error-message");
+        if (trimmed === '') {
+          row.remove();
+        } else {
+          error.style.display = "none";
+        }
+        drawWheel(getNames());
+      });
       span.addEventListener("input", () => {
+        const error = row.querySelector(".error-message");
         if (span.textContent.length > 25) {
           span.textContent = span.textContent.slice(0, 25);
           span.focus();
           placeCaretAtEnd(span);
+        }
+        if (span.textContent.trim() !== '') {
+          error.style.display = "none";
+        }
+      });
+      span.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const trimmed = span.textContent.trim();
+          const error = row.querySelector(".error-message");
+          if (trimmed !== '') {
+            span.blur();
+            drawWheel(getNames());
+            addRow();
+          } else {
+            error.style.display = "block";
+          }
         }
       });
       const deleteBtn = document.createElement("button");
@@ -529,6 +743,10 @@ function handleFileDrop(file) {
       container.appendChild(span);
       container.appendChild(deleteBtn);
       cell.appendChild(container);
+      const error = document.createElement("div");
+      error.className = "error-message";
+      error.textContent = "Введите имя";
+      cell.appendChild(error);
       row.appendChild(cell);
       tbody.appendChild(row);
     });
@@ -574,20 +792,57 @@ wheelContainer.addEventListener('drop', (e) => {
 
 volumeSlider.addEventListener("input", () => {
   const volume = parseFloat(volumeSlider.value);
-  [music, zeroSound, winnerSound].forEach(s => s.volume = volume);
+  [music, zeroSound, winnerSound, pauseSound].forEach(s => s.volume = volume);
 });
 
 speedSlider.addEventListener("input", () => {
   spinSpeedFactor = parseFloat(speedSlider.value);
 });
 
+pauseCheckbox.addEventListener("change", () => {
+  if (pauseCheckbox.checked) {
+    pauseSound.play();
+  } else {
+    pauseSound.pause();
+    pauseSound.currentTime = 0;
+  }
+});
+
 document.querySelectorAll("#names-table .cell-container span").forEach(span => {
-  span.addEventListener("blur", () => drawWheel(getNames()));
+  const row = span.closest("tr");
+  const error = row.querySelector(".error-message");
+  span.addEventListener("blur", () => {
+    const trimmed = span.textContent.trim();
+    if (trimmed === '') {
+      row.remove();
+    } else {
+      error.style.display = "none";
+    }
+    drawWheel(getNames());
+  });
   span.addEventListener("input", () => {
+    const error = row.querySelector(".error-message");
     if (span.textContent.length > 25) {
       span.textContent = span.textContent.slice(0, 25);
       span.focus();
       placeCaretAtEnd(span);
+    }
+    if (span.textContent.trim() !== '') {
+      error.style.display = "none";
+    }
+  });
+  span.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const trimmed = span.textContent.trim();
+      const error = row.querySelector(".error-message");
+      if (trimmed !== '') {
+        span.blur();
+        drawWheel(getNames());
+        addRow();
+      } else {
+        error.style.display = "block";
+      }
     }
   });
 });

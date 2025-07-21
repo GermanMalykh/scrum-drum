@@ -672,7 +672,7 @@ initVolume();
 
 function getNames() {
   const cells = document.querySelectorAll("#names-table .cell-container span");
-  let names = Array.from(cells).map(c => c.textContent.trim()).filter(Boolean);
+  let names = Array.from(cells).map(c => c.textContent.trim()).filter(name => name && name !== "0");
   if (names.length === 0) {
     return Array(16).fill("");
   }
@@ -922,8 +922,8 @@ function clearTable() {
 }
 
 function downloadNames() {
-  const participants = getNames().filter(name => name !== "0");
-  const winners = Array.from(resultsTable.querySelectorAll("td")).map(td => td.textContent.trim());
+  const participants = getNames().filter(name => name && name.length > 0 && name !== "0");
+  const winners = Array.from(resultsTable.querySelectorAll("td")).map(td => td.textContent.trim()).filter(name => name && name.length > 0);
   const allNames = [...participants, ...winners];
   const text = allNames.join("\n");
   const blob = new Blob([text], { type: "text/plain" });

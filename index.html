@@ -323,7 +323,7 @@
         <td>
           <div class="cell-container">
             <span contenteditable="true">Иванов Иван</span>
-            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
           </div>
           <div class="error-message">Введите имя</div>
         </td>
@@ -332,7 +332,7 @@
         <td>
           <div class="cell-container">
             <span contenteditable="true">Петров Пётр</span>
-            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
           </div>
           <div class="error-message">Введите имя</div>
         </td>
@@ -341,7 +341,7 @@
         <td>
           <div class="cell-container">
             <span contenteditable="true">Сидоров Сидор</span>
-            <button class="delete-btn" onclick="this.parentElement.parentElement.parentElement.remove(); drawWheel(getNames())">✕</button>
+            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
           </div>
           <div class="error-message">Введите имя</div>
         </td>
@@ -356,7 +356,7 @@
   </div>
 
   <div id="wheel-container">
-    <canvas id="wheel" width="500" height="500" onclick="spinWheel()"></canvas>
+    <canvas id="wheel" width="500" height="500" onclick="spinWheel()"> </canvas>
     <div id="single-name" class="single-name" style="display: none;"></div>
   </div>
 
@@ -405,6 +405,7 @@ let confettiInterval = null;
 let redrawPending = false;
 let spinSpeedFactor = 1;
 
+const initialParticipants = ["Иванов Иван", "Петров Пётр", "Сидоров Сидор"];
 const yakubSounds = [
   './yakub/300 очков, буква.mp3',
   './yakub/450 очков, буква.mp3',
@@ -673,13 +674,32 @@ function initVolume() {
 
 initVolume();
 
+function loadParticipants() {
+  const saved = localStorage.getItem('participants');
+  if (saved) {
+    const tbody = document.querySelector("#names-table tbody");
+    tbody.innerHTML = '';
+    JSON.parse(saved).forEach(name => addRow(name));
+  } else {
+    initialParticipants.forEach(name => addRow(name));
+  }
+  drawWheel(getNames());
+}
+
+function saveParticipants() {
+  const names = Array.from(document.querySelectorAll("#names-table .cell-container span"))
+    .map(span => span.textContent.trim())
+    .filter(name => name && name.length > 0);
+  localStorage.setItem('participants', JSON.stringify(names));
+}
+
 function getNames() {
   const cells = document.querySelectorAll("#names-table .cell-container span");
-  let names = Array.from(cells).map(c => c.textContent.trim()).filter(name => name && name !== "0");
+  let names = Array.from(cells).map(c => c.textContent.trim()).filter(name => name && name.length > 0);
   if (names.length === 0) {
     return Array(16).fill("");
   }
-  if (names.length % 2 !== 0) names.push("0");
+  if (names.length > 1 && names.length % 2 !== 0) names.push("");
   return names;
 }
 
@@ -702,7 +722,7 @@ function drawWheel(names) {
   const centerX = radius;
   const centerY = radius;
 
-  const realNamesCount = names.filter(n => n !== "0").length;
+  const realNamesCount = names.filter(n => n && n.length > 0).length;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -722,7 +742,7 @@ function drawWheel(names) {
       ctx.fill();
     }
 
-    const singleName = names.find(n => n !== "0");
+    const singleName = names[0];
     singleNameElement.textContent = singleName;
     singleNameElement.style.display = "block";
     drawPointer();
@@ -744,7 +764,7 @@ function drawWheel(names) {
     ctx.fillStyle = i % 2 === 0 ? "#000" : "#fff";
     ctx.fill();
 
-    if (names[i]) {
+    if (names[i] && names[i].length > 0) {
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(startAngle + anglePerSlice / 2);
@@ -786,17 +806,12 @@ function animate(names) {
     isSpinning = false;
     music.pause();
 
-    const anglePerSlice = 2 * Math.PI / names.length;
+    const anglePerSlice = 2 * Math.PI / 16;
     const normalizedAngle = (2 * Math.PI - angle) % (2 * Math.PI);
     const index = Math.floor(normalizedAngle / anglePerSlice);
-    const selected = names[index];
+    const selected = names.length === 1 ? names[0] : (names.length > 0 ? names[index % names.length] : "");
 
-    if (selected === "0") {
-      zeroSound.currentTime = 0;
-      zeroSound.play().catch(err => console.error("Ошибка воспроизведения zeroSound:", err));
-      selectedWinner = "0";
-      return;
-    } else if (selected) {
+    if (selected && selected.length > 0) {
       selectedWinner = selected;
       winnerName.textContent = selected;
       overlay.classList.add("show");
@@ -819,7 +834,7 @@ function animate(names) {
       resultsTable.appendChild(row);
 
       redrawPending = true;
-    } else {
+    } else if (names.length > 0) {
       const randomIndex = Math.floor(Math.random() * yakubSounds.length);
       const randomSound = yakubSounds[randomIndex];
       const yakubAudio = new Audio(randomSound);
@@ -856,7 +871,7 @@ function stopConfetti() {
   }
 }
 
-function addRow() {
+function addRow(initialName) {
   const tbody = document.querySelector("#names-table tbody");
 
   const row = document.createElement("tr");
@@ -866,6 +881,7 @@ function addRow() {
   const span = document.createElement("span");
   span.contentEditable = "true";
   span.setAttribute("data-placeholder", "Новое имя");
+  if (initialName) span.textContent = initialName;
   span.addEventListener("blur", () => {
     const trimmed = span.textContent.trim();
     const error = row.querySelector(".error-message");
@@ -874,6 +890,7 @@ function addRow() {
     } else {
       error.style.display = "none";
     }
+    saveParticipants();
     drawWheel(getNames());
   });
   span.addEventListener("input", () => {
@@ -904,10 +921,7 @@ function addRow() {
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "delete-btn";
   deleteBtn.textContent = "✕";
-  deleteBtn.onclick = () => {
-    row.remove();
-    drawWheel(getNames());
-  };
+  deleteBtn.onclick = () => removeRow(deleteBtn);
   container.appendChild(span);
   container.appendChild(deleteBtn);
   cell.appendChild(container);
@@ -918,15 +932,23 @@ function addRow() {
   row.appendChild(cell);
   tbody.appendChild(row);
   span.focus();
+  saveParticipants();
+}
+
+function removeRow(button) {
+  button.parentElement.parentElement.parentElement.remove();
+  saveParticipants();
+  drawWheel(getNames());
 }
 
 function clearTable() {
   document.querySelector("#names-table tbody").innerHTML = "";
+  saveParticipants();
   drawWheel(getNames());
 }
 
 function downloadNames() {
-  const participants = getNames().filter(name => name && name.length > 0 && name !== "0");
+  const participants = getNames().filter(name => name && name.length > 0);
   const winners = Array.from(resultsTable.querySelectorAll("td")).map(td => td.textContent.trim()).filter(name => name && name.length > 0);
   const allNames = [...participants, ...winners];
   const text = allNames.join("\n");
@@ -969,40 +991,13 @@ function handleFileDrop(file) {
         } else {
           error.style.display = "none";
         }
+        saveParticipants();
         drawWheel(getNames());
-      });
-      span.addEventListener("input", () => {
-        const error = row.querySelector(".error-message");
-        if (span.textContent.length > 25) {
-          span.textContent = span.textContent.slice(0, 25);
-          span.focus();
-          placeCaretAtEnd(span);
-        }
-        if (span.textContent.trim() !== '') {
-          error.style.display = "none";
-        }
-      });
-      span.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          const trimmed = span.textContent.trim();
-          const error = row.querySelector(".error-message");
-          if (trimmed !== '') {
-            span.blur();
-            drawWheel(getNames());
-            addRow();
-          } else {
-            error.style.display = "block";
-          }
-        }
       });
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "✕";
-      deleteBtn.onclick = () => {
-        row.remove();
-        drawWheel(getNames());
-      };
+      deleteBtn.onclick = () => removeRow(deleteBtn);
       container.appendChild(span);
       container.appendChild(deleteBtn);
       cell.appendChild(container);
@@ -1014,6 +1009,7 @@ function handleFileDrop(file) {
       tbody.appendChild(row);
     });
 
+    saveParticipants();
     drawWheel(getNames());
   };
   reader.readAsText(file);
@@ -1083,6 +1079,7 @@ document.querySelectorAll("#names-table .cell-container span").forEach(span => {
     } else {
       error.style.display = "none";
     }
+    saveParticipants();
     drawWheel(getNames());
   });
   span.addEventListener("input", () => {
@@ -1115,6 +1112,7 @@ document.querySelectorAll("#names-table .cell-container span").forEach(span => {
 canvas.addEventListener("click", spinWheel);
 
 drawWheel(getNames());
+loadParticipants();
 </script>
 
 </body>

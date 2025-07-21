@@ -821,7 +821,10 @@ function animate(names) {
       const randomSound = yakubSounds[randomIndex];
       const yakubAudio = new Audio(randomSound);
       yakubAudio.volume = parseFloat(volumeSlider.value);
-      yakubAudio.play();
+      yakubAudio.play().catch(() => {
+        zeroSound.currentTime = 0;
+        zeroSound.play();
+      });
     }
   } else {
     requestAnimationFrame(() => animate(names));

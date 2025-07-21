@@ -319,33 +319,6 @@
     </div>
     <table id="names-table">
       <tbody>
-      <tr>
-        <td>
-          <div class="cell-container">
-            <span contenteditable="true">Иванов Иван</span>
-            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
-          </div>
-          <div class="error-message">Введите имя</div>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <div class="cell-container">
-            <span contenteditable="true">Петров Пётр</span>
-            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
-          </div>
-          <div class="error-message">Введите имя</div>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <div class="cell-container">
-            <span contenteditable="true">Сидоров Сидор</span>
-            <button class="delete-btn" onclick="removeRow(this); saveParticipants(); drawWheel(getNames())">✕</button>
-          </div>
-          <div class="error-message">Введите имя</div>
-        </td>
-      </tr>
       </tbody>
     </table>
     <div class="buttons-container">
@@ -405,7 +378,6 @@ let confettiInterval = null;
 let redrawPending = false;
 let spinSpeedFactor = 1;
 
-const initialParticipants = ["Иванов Иван", "Петров Пётр", "Сидоров Сидор"];
 const yakubSounds = [
   './yakub/300 очков, буква.mp3',
   './yakub/450 очков, буква.mp3',
@@ -680,8 +652,6 @@ function loadParticipants() {
     const tbody = document.querySelector("#names-table tbody");
     tbody.innerHTML = '';
     JSON.parse(saved).forEach(name => addRow(name));
-  } else {
-    initialParticipants.forEach(name => addRow(name));
   }
   drawWheel(getNames());
 }
@@ -806,7 +776,7 @@ function animate(names) {
     isSpinning = false;
     music.pause();
 
-    const anglePerSlice = 2 * Math.PI / 16;
+    const anglePerSlice = 2 * Math.PI / (names.length === 0 || names.length === 1 ? 16 : names.length);
     const normalizedAngle = (2 * Math.PI - angle) % (2 * Math.PI);
     const index = Math.floor(normalizedAngle / anglePerSlice);
     const selected = names.length === 1 ? names[0] : (names.length > 0 ? names[index % names.length] : "");

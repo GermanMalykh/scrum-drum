@@ -1,0 +1,1 @@
+![Scrum Drum Preview](./scrum-drum-preview.png)
